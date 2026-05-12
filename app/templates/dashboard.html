@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h1>{{ t("dashboard") }}</h1>
+    <span class="badge badge-audit">{{ t("audit_mode") }}</span>
+  </div>
+  {% if not root_path_exists %}
+    <div class="alert alert-warning">{{ t("root_missing") }}</div>
+  {% endif %}
+  {% if watcher_error %}
+    <div class="alert alert-danger">{{ watcher_error }}</div>
+  {% endif %}
+  <div class="status-grid">
+    <div class="metric">
+      <span>{{ t("status") }}</span>
+      <strong>{{ t("running") if watcher_running else t("stopped") }}</strong>
+    </div>
+    <div class="metric wide">
+      <span>{{ t("root_path") }}</span>
+      <strong>{{ config.watcher.root_path }}</strong>
+    </div>
+    <div class="metric">
+      <span>{{ t("mode") }}</span>
+      <strong>{{ t("audit_mode") }}</strong>
+    </div>
+    <div class="metric">
+      <span>{{ t("language") }}</span>
+      <strong>{{ language|upper }}</strong>
+    </div>
+  </div>
+  <div class="stats-grid">
+    <div class="metric"><span>{{ t("events_today") }}</span><strong>{{ stats.events_today }}</strong></div>
+    <div class="metric"><span>{{ t("warning_today") }}</span><strong>{{ stats.warning_today }}</strong></div>
+    <div class="metric"><span>{{ t("danger_today") }}</span><strong>{{ stats.danger_today }}</strong></div>
+    <div class="metric"><span>{{ t("critical_today") }}</span><strong>{{ stats.critical_today }}</strong></div>
+    <div class="metric"><span>{{ t("long_name_today") }}</span><strong>{{ stats.long_name_today }}</strong></div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>{{ t("latest_events") }}</h2>
+  {% include "_events_table.html" with context %}
+</section>
+{% endblock %}

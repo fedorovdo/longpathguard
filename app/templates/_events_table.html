@@ -1,0 +1,37 @@
+{% set rows = events if events is defined else latest_events %}
+{% if rows %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t("date") }}</th>
+        <th>{{ t("event_type") }}</th>
+        <th>{{ t("severity") }}</th>
+        <th>{{ t("object_type") }}</th>
+        <th>{{ t("path_length") }}</th>
+        <th>{{ t("name_length") }}</th>
+        <th>{{ t("owner") }}</th>
+        <th>{{ t("path") }}</th>
+        <th>{{ t("error") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in rows %}
+      <tr>
+        <td class="nowrap">{{ event.detected_at }}</td>
+        <td>{{ t(event.event_type) }}</td>
+        <td><span class="badge severity-{{ event.severity }}">{{ event.severity }}</span></td>
+        <td>{{ t(event.object_type) }}</td>
+        <td>{{ event.full_path_length }}</td>
+        <td>{{ event.name_length }}</td>
+        <td>{{ event.owner or "" }}</td>
+        <td class="path-cell" title="{{ event.full_path }}">{{ event.full_path }}</td>
+        <td class="error-cell">{{ event.error or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="muted">{{ t("no_events") }}</p>
+{% endif %}

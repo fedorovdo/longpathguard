@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section">
+  <h1>{{ t("settings") }}</h1>
+  {% if saved %}<div class="alert alert-success">{{ t("saved") }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger">{{ t("invalid_settings") }}</div>{% endif %}
+  <form class="settings-form" method="post" action="/settings">
+    <div class="form-grid">
+      <label>{{ t("root_path") }}<input name="root_path" value="{{ config.watcher.root_path }}" required></label>
+      <label>{{ t("language") }}
+        <select name="language">
+          <option value="ru" {% if language == 'ru' %}selected{% endif %}>RU</option>
+          <option value="en" {% if language == 'en' %}selected{% endif %}>EN</option>
+        </select>
+      </label>
+      <label>{{ t("max_full_path_warning") }}<input type="number" name="max_full_path_warning" min="1" value="{{ config.thresholds.max_full_path_warning }}"></label>
+      <label>{{ t("max_full_path_danger") }}<input type="number" name="max_full_path_danger" min="1" value="{{ config.thresholds.max_full_path_danger }}"></label>
+      <label>{{ t("max_full_path_critical") }}<input type="number" name="max_full_path_critical" min="1" value="{{ config.thresholds.max_full_path_critical }}"></label>
+      <label>{{ t("max_name_length") }}<input type="number" name="max_name_length" min="1" value="{{ config.thresholds.max_name_length }}"></label>
+      <label>{{ t("max_scan_items") }}<input type="number" name="max_scan_items" min="1" value="{{ config.scanner.max_scan_items }}"></label>
+    </div>
+    <label>{{ t("excluded_paths") }}
+      <textarea name="excluded_paths" rows="5">{{ "\n".join(config.watcher.excluded_paths) }}</textarea>
+      <small>{{ t("excluded_paths_help") }}</small>
+    </label>
+    <fieldset>
+      <legend>{{ t("notifications") }}</legend>
+      <label class="check"><input type="checkbox" name="enable_telegram_notifications" {% if config.telegram.enabled %}checked{% endif %}> {{ t("enable_telegram_notifications") }}</label>
+      <label class="check"><input type="checkbox" name="enable_email_notifications" {% if config.email.enabled %}checked{% endif %}> {{ t("enable_email_notifications") }}</label>
+    </fieldset>
+    <button class="button" type="submit">{{ t("save") }}</button>
+  </form>
+</section>
+{% endblock %}
