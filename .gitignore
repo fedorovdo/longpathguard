@@ -1,8 +1,10 @@
 .venv/
 __pycache__/
+*.pyc
 *.py[cod]
 .pytest_cache/
 data/*.db
 data/*.log
 data/service.*.log
+config/config.yaml
 scripts/tools/

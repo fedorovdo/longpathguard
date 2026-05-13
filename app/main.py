@@ -155,6 +155,9 @@ async def update_settings(request: Request) -> RedirectResponse:
         }
         excluded_paths = str(form.get("excluded_paths", "")).splitlines()
         current["watcher"]["excluded_paths"] = [path.strip() for path in excluded_paths if path.strip()]
+        current.setdefault("events", {})
+        current["events"]["store_ok_events"] = form.get("store_ok_events") == "on"
+        current["events"]["store_modified_events"] = form.get("store_modified_events") == "on"
         current["telegram"]["enabled"] = form.get("enable_telegram_notifications") == "on"
         current["email"]["enabled"] = form.get("enable_email_notifications") == "on"
         current["scanner"]["max_scan_items"] = int(form.get("max_scan_items", 10000))

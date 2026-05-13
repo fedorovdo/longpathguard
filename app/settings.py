@@ -18,6 +18,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "app": {
         "language": "ru",
         "audit_mode": True,
+        "host": "127.0.0.1",
+        "port": 8787,
+    },
+    "events": {
+        "store_ok_events": False,
+        "store_modified_events": False,
     },
     "watcher": {
         "root_path": r"D:\fs",

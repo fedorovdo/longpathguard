@@ -128,7 +128,9 @@ def fetch_events(filters: dict[str, Any] | None = None, limit: int = 50) -> list
 def today_stats() -> dict[str, int]:
     today = datetime.now().date().isoformat()
     stats = {
-        "events_today": 0,
+        "total_events_today": 0,
+        "problem_events_today": 0,
+        "ok_today": 0,
         "warning_today": 0,
         "danger_today": 0,
         "critical_today": 0,
@@ -152,7 +154,11 @@ def today_stats() -> dict[str, int]:
     for row in rows:
         count = int(row["count"])
         severity = row["severity"]
-        stats["events_today"] += count
+        stats["total_events_today"] += count
+        if severity == "ok":
+            stats["ok_today"] += count
+        else:
+            stats["problem_events_today"] += count
         if severity == "warning":
             stats["warning_today"] += count
         if severity == "danger":

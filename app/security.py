@@ -49,11 +49,43 @@ def get_size_bytes(path: str, object_type: str) -> int | None:
         return None
 
 
-def get_owner(path: str) -> str | None:
+def get_owner(path: str) -> tuple[str, str | None]:
+    if os.name == "nt":
+        try:
+            import win32security
+
+            security_descriptor = win32security.GetNamedSecurityInfo(
+                path,
+                win32security.SE_FILE_OBJECT,
+                win32security.OWNER_SECURITY_INFORMATION,
+            )
+            owner_sid = security_descriptor.GetSecurityDescriptorOwner()
+            name, domain, _account_type = win32security.LookupAccountSid(None, owner_sid)
+            return (f"{domain}\\{name}" if domain else name), None
+        except ImportError as exc:
+            logging.warning("pywin32 is not installed; falling back to pathlib owner lookup")
+            fallback_owner, fallback_error = _get_owner_with_pathlib(path)
+            if fallback_error:
+                return "", f"Owner lookup failed: pywin32 unavailable ({exc}); {fallback_error}"
+            return fallback_owner, None
+        except Exception as exc:
+            logging.warning("Windows owner lookup failed for %s: %s", path, exc)
+            return "", f"Owner lookup failed: {exc}"
+
+    return _get_owner_with_pathlib(path)
+
+
+def _get_owner_with_pathlib(path: str) -> tuple[str, str | None]:
     try:
-        return Path(path).owner()
-    except Exception:
-        return None
+        return Path(path).owner(), None
+    except Exception as exc:
+        logging.warning("Path owner lookup failed for %s: %s", path, exc)
+        return "", f"Owner lookup failed: {exc}"
+
+
+def _join_errors(*errors: str | None) -> str | None:
+    clean_errors = [error for error in errors if error]
+    return "; ".join(clean_errors) if clean_errors else None
 
 
 def evaluate_severity(path: str, config: dict[str, Any]) -> str:
@@ -104,7 +136,7 @@ def build_event(
     object_type = get_object_type(clean_path, is_directory_hint)
     name = os.path.basename(clean_path.rstrip("\\/"))
     size_bytes = stat_result.st_size if stat_result and object_type == "file" else None
-    owner = get_owner(clean_path) if stat_error is None else None
+    owner, owner_error = get_owner(clean_path) if stat_error is None else ("", None)
 
     return {
         "event_type": event_type,
@@ -118,5 +150,5 @@ def build_event(
         "size_bytes": size_bytes,
         "owner": owner,
         "action_taken": "audit",
-        "error": stat_error,
+        "error": _join_errors(stat_error, owner_error),
     }

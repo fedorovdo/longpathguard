@@ -1,85 +1,98 @@
 # LongPathGuard
 
-LongPathGuard v0.1 - микро-приложение для Windows Server 2022, которое наблюдает за новыми событиями в файловой папке и помогает администратору видеть слишком длинные имена файлов, папок и полные пути.
+LongPathGuard v0.1.0 - микро-приложение для Windows Server 2022, которое устанавливается на файловый сервер и помогает администратору контролировать новые файлы и папки со слишком длинными именами или путями.
 
-Важный принцип v0.1: приложение работает только в режиме аудита. Оно ничего не удаляет, не перемещает, не переименовывает и не меняет в файловой системе.
+Главный принцип: v0.1.0 работает только в режиме аудита. Приложение ничего не удаляет, не перемещает, не переименовывает и не меняет в файловой системе.
 
 ## Возможности
 
-- Watchdog-наблюдение за новыми событиями `created`, `renamed`, `modified`.
+- Наблюдение за новыми событиями `created`, `renamed`, `modified` через watchdog.
 - Проверка длины полного пути и имени файла или папки.
-- SQLite-журнал `data/longpathguard.db`.
-- Web UI на FastAPI и Jinja2 без React и Docker.
+- Получение владельца объекта через Windows ACL при наличии pywin32.
+- SQLite-журнал событий в `data/longpathguard.db`.
+- Web UI на FastAPI и Jinja2 без React, Docker и PostgreSQL.
 - Русский интерфейс по умолчанию, переключение RU/EN.
 - CSV-экспорт событий.
 - Ручной безопасный сканер существующих файлов.
-- Заготовка Telegram и Email уведомлений.
 - Установка как Windows Service через NSSM.
-
-## Требования
-
-- Windows Server 2022.
-- Python 3.12.
-- Доступ администратора для установки службы.
 
 ## Установка Python 3.12
 
-1. Скачайте Python 3.12 с официального сайта: https://www.python.org/downloads/windows/
-2. Во время установки включите опцию `Add python.exe to PATH`.
+1. Скачайте Python 3.12: https://www.python.org/downloads/windows/
+2. Во время установки включите `Add python.exe to PATH`.
 3. Проверьте:
 
 ```powershell
 python --version
 ```
 
-## Первый запуск
+## Создание venv и dev-запуск
 
-Откройте PowerShell в корне проекта и выполните:
+Откройте PowerShell в корне проекта:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\run_dev.ps1
 ```
 
-Скрипт создаст `.venv`, установит зависимости и запустит сервер:
+Скрипт создаст `.venv`, установит зависимости и запустит uvicorn на host/port из `config/config.yaml`.
+
+По умолчанию интерфейс доступен только на сервере:
 
 ```text
-http://server-ip:8787
+http://127.0.0.1:8787
 ```
 
-Локально можно открыть:
+Для доступа из локальной сети нужно явно изменить `app.host` на `0.0.0.0` и открыть порт `8787` в Windows Firewall:
 
-```text
-http://localhost:8787
+```yaml
+app:
+  host: 0.0.0.0
+  port: 8787
 ```
 
-## Настройка наблюдаемой папки
+## Конфигурация
 
-По умолчанию используется:
+Для GitHub используется пример `config/config.example.yaml`. Локальный `config/config.yaml` игнорируется git и может содержать настройки конкретного сервера.
+
+По умолчанию наблюдаемая папка:
 
 ```yaml
 watcher:
   root_path: D:\fs
 ```
 
-Изменить путь можно в `config/config.yaml` или через страницу `Настройки`.
+Если папка не существует, приложение не падает: dashboard покажет ошибку, watcher не стартует до исправления пути.
 
-Если папка не существует, приложение продолжит работать, покажет ошибку на панели и не запустит watcher до исправления пути.
+## Шум событий
 
-## Безопасный скан существующих файлов
+По умолчанию LongPathGuard хранит только нарушения и ошибки:
+
+```yaml
+events:
+  store_ok_events: false
+  store_modified_events: false
+```
+
+- `store_ok_events: false` не записывает события с `severity = ok`.
+- `store_modified_events: false` не записывает `modified` события, если они не являются warning/danger/critical/long_name.
+
+Так база по умолчанию не заполняется обычными изменениями файлов.
+
+## Скан существующих файлов
 
 Скан не запускается автоматически. Откройте страницу `Сканирование` и нажмите `Запустить сканирование`.
 
-Сканер только читает дерево каталогов и записывает найденные длинные пути в события с типом `scan_detected`. Лимит задается параметром:
+Сканер только читает дерево каталогов и пишет найденные проблемы в события с `event_type = scan_detected`. Он не меняет файлы. Лимит задается так:
 
 ```yaml
 scanner:
   max_scan_items: 10000
 ```
 
-## Установка службы Windows
+## Установка как Windows Service
 
-LongPathGuard использует NSSM.
+Служба устанавливается через NSSM.
 
 1. Скачайте NSSM: https://nssm.cc/download
 2. Положите `nssm.exe` в:
@@ -90,13 +103,15 @@ scripts\tools\nssm.exe
 
 Или добавьте `nssm.exe` в `PATH`.
 
-3. Установите службу из PowerShell с правами администратора:
+3. Запустите PowerShell от администратора:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\install_service.ps1
 .\scripts\start_service.ps1
 ```
+
+Скрипт установит зависимости, создаст службу `LongPathGuard`, настроит автозапуск и restart on failure через NSSM. Служба запускает uvicorn на host/port из `config/config.yaml`; по умолчанию это `127.0.0.1:8787`.
 
 Остановка:
 
@@ -116,30 +131,13 @@ Set-ExecutionPolicy -Scope Process Bypass
 - Лог приложения: `data/longpathguard.log`
 - Логи службы NSSM: `data/service.out.log`, `data/service.err.log`
 
-## Пороги по умолчанию
+## Audit only
 
-```yaml
-thresholds:
-  max_full_path_warning: 220
-  max_full_path_danger: 240
-  max_full_path_critical: 260
-  max_name_length: 120
-```
+LongPathGuard v0.1.0:
 
-Severity:
-
-- `ok`
-- `warning`
-- `danger`
-- `critical`
-- `long_name`
-- `critical_long_name`
-
-## Что v0.1 не делает
-
-- Не делает карантин.
-- Не удаляет файлы.
-- Не переименовывает файлы.
-- Не перемещает файлы.
-- Не устанавливает драйвер файловой системы.
-- Не использует Docker, PostgreSQL или React.
+- не делает карантин;
+- не удаляет файлы;
+- не переименовывает файлы;
+- не перемещает файлы;
+- не устанавливает драйвер файловой системы;
+- не использует Docker, PostgreSQL или React.

@@ -1,11 +1,16 @@
 app:
   language: ru
   audit_mode: true
+  host: 127.0.0.1
+  port: 8787
+events:
+  store_ok_events: false
+  store_modified_events: false
 watcher:
   root_path: D:\fs
   excluded_paths:
-  - D:\_LongPathQuarantine
-  - data
+    - D:\_LongPathQuarantine
+    - data
   modified_debounce_seconds: 2
 thresholds:
   max_full_path_warning: 220
@@ -16,16 +21,16 @@ scanner:
   max_scan_items: 10000
 telegram:
   enabled: false
-  bot_token: ''
-  chat_id: ''
+  bot_token: ""
+  chat_id: ""
   min_severity: critical
 email:
   enabled: false
-  smtp_host: ''
+  smtp_host: ""
   smtp_port: 587
-  smtp_user: ''
-  smtp_password: ''
-  from_addr: ''
-  to_addr: ''
+  smtp_user: ""
+  smtp_password: ""
+  from_addr: ""
+  to_addr: ""
   use_tls: true
   min_severity: critical

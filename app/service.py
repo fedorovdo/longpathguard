@@ -2,7 +2,7 @@ from __future__ import annotations
 
 SERVICE_NAME = "LongPathGuard"
 UVICORN_APP = "app.main:app"
-DEFAULT_HOST = "0.0.0.0"
+DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8787
 
 

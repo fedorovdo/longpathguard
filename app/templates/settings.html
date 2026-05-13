@@ -24,6 +24,11 @@
       <small>{{ t("excluded_paths_help") }}</small>
     </label>
     <fieldset>
+      <legend>{{ t("event_storage") }}</legend>
+      <label class="check"><input type="checkbox" name="store_ok_events" {% if config.events.store_ok_events %}checked{% endif %}> {{ t("store_ok_events") }}</label>
+      <label class="check"><input type="checkbox" name="store_modified_events" {% if config.events.store_modified_events %}checked{% endif %}> {{ t("store_modified_events") }}</label>
+    </fieldset>
+    <fieldset>
       <legend>{{ t("notifications") }}</legend>
       <label class="check"><input type="checkbox" name="enable_telegram_notifications" {% if config.telegram.enabled %}checked{% endif %}> {{ t("enable_telegram_notifications") }}</label>
       <label class="check"><input type="checkbox" name="enable_email_notifications" {% if config.email.enabled %}checked{% endif %}> {{ t("enable_email_notifications") }}</label>

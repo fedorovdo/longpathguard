@@ -14,6 +14,23 @@ from .notifier import notify_event
 from .security import build_event, is_path_excluded
 
 
+def should_store_event(event: dict[str, Any], config: dict[str, Any]) -> bool:
+    if event.get("error"):
+        return True
+
+    events_config = config.get("events", {})
+    severity = event.get("severity", "ok")
+    event_type = event.get("event_type", "")
+
+    if event_type == "modified" and not events_config.get("store_modified_events", False):
+        return severity != "ok"
+
+    if severity == "ok" and not events_config.get("store_ok_events", False):
+        return False
+
+    return True
+
+
 class LongPathEventHandler(FileSystemEventHandler):
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
@@ -67,8 +84,9 @@ class LongPathEventHandler(FileSystemEventHandler):
                 error=str(exc),
             )
 
-        insert_event(event)
-        notify_event(event)
+        if should_store_event(event, self.config):
+            insert_event(event)
+            notify_event(event)
 
 
 class WatcherManager:

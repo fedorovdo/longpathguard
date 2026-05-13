@@ -31,13 +31,24 @@ if (-not (Test-Path ".venv")) {
 & ".\.venv\Scripts\python.exe" -m pip install -r requirements.txt
 
 $PythonExe = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
-$AppParameters = "-m uvicorn app.main:app --host 0.0.0.0 --port 8787"
+$BindHost = & $PythonExe -c "from app.settings import load_config; print(load_config().get('app', {}).get('host', '127.0.0.1'))"
+if ([string]::IsNullOrWhiteSpace($BindHost)) {
+    $BindHost = "127.0.0.1"
+}
+$BindPort = & $PythonExe -c "from app.settings import load_config; print(load_config().get('app', {}).get('port', 8787))"
+if ($BindPort -notmatch '^\d+$') {
+    $BindPort = "8787"
+}
+$AppParameters = "-m uvicorn app.main:app --host $BindHost --port $BindPort"
 
 & $NssmCommand install $ServiceName $PythonExe $AppParameters
 & $NssmCommand set $ServiceName AppDirectory $ProjectRoot
 & $NssmCommand set $ServiceName Start SERVICE_AUTO_START
 & $NssmCommand set $ServiceName AppStdout (Join-Path $ProjectRoot "data\service.out.log")
 & $NssmCommand set $ServiceName AppStderr (Join-Path $ProjectRoot "data\service.err.log")
+& $NssmCommand set $ServiceName AppExit Default Restart
+& $NssmCommand set $ServiceName AppThrottle 15000
 
 Write-Host "Service $ServiceName installed."
+Write-Host "Service will run on $BindHost`:$BindPort."
 Write-Host "Start it with: .\scripts\start_service.ps1"
