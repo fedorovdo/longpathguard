@@ -31,7 +31,7 @@ A screenshot location is prepared under `docs/screenshots/`. Add `dashboard.png`
 ## Requirements
 
 - Windows Server 2022 or a compatible Windows version;
-- 64-bit Python 3.12 available in `PATH`;
+- 64-bit Python 3.12, 3.13, or 3.14 available in `PATH`;
 - read permission for the watched folder;
 - administrator rights only when installing the Windows Service;
 - NSSM for service mode.
@@ -44,7 +44,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\run.ps1
 ```
 
-`setup.ps1` validates Python 3.12, creates `.venv`, installs dependencies, creates `config` and `data`, and copies `config/config.example.yaml` to `config/config.yaml` only when the local config is missing. An existing config is never overwritten.
+`setup.ps1` validates Python 3.12, 3.13, or 3.14, creates `.venv`, installs dependencies, creates `config` and `data`, and copies `config/config.example.yaml` to `config/config.yaml` only when the local config is missing. An existing config is never overwritten.
 
 `run.ps1` uses the existing `.venv`, reads host/port from config, and does not reinstall dependencies on every normal start. `run_dev.ps1` remains as a compatibility wrapper around setup and run.
 

@@ -31,7 +31,7 @@ LongPathGuard - небольшое audit-only приложение для Window
 ## Требования
 
 - Windows Server 2022 или совместимая Windows;
-- 64-битный Python 3.12 в `PATH`;
+- 64-битный Python 3.12, 3.13 или 3.14 в `PATH`;
 - права чтения на наблюдаемую папку;
 - права администратора только для установки Windows-службы;
 - NSSM для service mode.
@@ -44,7 +44,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\run.ps1
 ```
 
-`setup.ps1` проверяет Python 3.12, создает `.venv`, устанавливает зависимости, создает каталоги `config` и `data` и при отсутствии локального конфига копирует `config/config.example.yaml` в `config/config.yaml`. Существующий config не перезаписывается.
+`setup.ps1` проверяет Python 3.12, 3.13 или 3.14, создает `.venv`, устанавливает зависимости, создает каталоги `config` и `data` и при отсутствии локального конфига копирует `config/config.example.yaml` в `config/config.yaml`. Существующий config не перезаписывается.
 
 `run.ps1` использует готовую `.venv`, читает host/port из config и не переустанавливает зависимости при каждом запуске. Старый `run_dev.ps1` сохранен как совместимая обертка над setup и run.
 
