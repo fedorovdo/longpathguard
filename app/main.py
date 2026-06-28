@@ -12,6 +12,8 @@ from fastapi.templating import Jinja2Templates
 
 from .database import export_events_csv, fetch_events, init_db, set_setting, today_stats
 from .i18n import normalize_language, translate
+from .notification_settings import NOTIFICATION_SEVERITIES, update_notification_config
+from .notifier import NOTIFICATION_STATUSES, send_email, send_telegram
 from .paths import normalize_windows_path, validate_watch_path
 from .runtime import activate_config
 from .scanner import scan_existing
@@ -30,6 +32,19 @@ UI_ERROR_CODES = {
     "path_access_denied",
     "watcher_start_failed",
     "config_save_failed",
+    "notification_severity_invalid",
+    "telegram_token_required",
+    "telegram_chat_id_required",
+    "email_smtp_host_required",
+    "email_from_addr_required",
+    "email_to_addr_required",
+    "email_smtp_port_invalid",
+}
+
+UI_NOTICE_CODES = {
+    f"{provider}_test_{status}"
+    for provider in ("telegram", "email")
+    for status in NOTIFICATION_STATUSES
 }
 
 
@@ -39,6 +54,13 @@ def _template_context(request: Request, extra: dict[str, Any] | None = None) -> 
     watcher: WatcherManager | None = getattr(request.app.state, "watcher", None)
     root_path = config.get("watcher", {}).get("root_path", "")
     path_status = validate_watch_path(root_path)
+    telegram = config.get("telegram", {})
+    email = config.get("email", {})
+    try:
+        email_port = int(email.get("smtp_port", 587))
+        email_port_valid = 1 <= email_port <= 65535
+    except (TypeError, ValueError):
+        email_port_valid = False
     context = {
         "request": request,
         "config": config,
@@ -48,6 +70,19 @@ def _template_context(request: Request, extra: dict[str, Any] | None = None) -> 
         "watcher_error_code": watcher.error_code if watcher else None,
         "root_path_available": path_status.is_valid,
         "root_path_error_code": path_status.error_code,
+        "notification_severity_values": NOTIFICATION_SEVERITIES,
+        "telegram_secret_configured": bool(telegram.get("bot_token")),
+        "telegram_test_ready": bool(
+            telegram.get("enabled") and telegram.get("bot_token") and telegram.get("chat_id")
+        ),
+        "email_secret_configured": bool(email.get("smtp_password")),
+        "email_test_ready": bool(
+            email.get("enabled")
+            and email.get("smtp_host")
+            and email.get("from_addr")
+            and email.get("to_addr")
+            and email_port_valid
+        ),
     }
     if extra:
         context.update(extra)
@@ -146,11 +181,25 @@ async def export_csv(
 
 
 @app.get("/settings", response_class=HTMLResponse)
-async def settings_page(request: Request, saved: str | None = "", error: str | None = "") -> HTMLResponse:
+async def settings_page(
+    request: Request,
+    saved: str | None = "",
+    error: str | None = "",
+    notice: str | None = "",
+) -> HTMLResponse:
     error_code = error if error in UI_ERROR_CODES else ("invalid_settings" if error else None)
+    notice_code = notice if notice in UI_NOTICE_CODES else None
     return templates.TemplateResponse(
         "settings.html",
-        _template_context(request, {"saved": bool(saved), "error_code": error_code}),
+        _template_context(
+            request,
+            {
+                "saved": bool(saved),
+                "error_code": error_code,
+                "notice_code": notice_code,
+                "notice_success": bool(notice_code and notice_code.endswith("_success")),
+            },
+        ),
     )
 
 
@@ -175,14 +224,16 @@ async def update_settings(request: Request) -> RedirectResponse:
         current.setdefault("events", {})
         current["events"]["store_ok_events"] = form.get("store_ok_events") == "on"
         current["events"]["store_modified_events"] = form.get("store_modified_events") == "on"
-        current["telegram"]["enabled"] = form.get("enable_telegram_notifications") == "on"
-        current["email"]["enabled"] = form.get("enable_email_notifications") == "on"
         current["scanner"]["max_scan_items"] = int(form.get("max_scan_items", 10000))
     except (TypeError, ValueError):
         return RedirectResponse("/settings?error=1", status_code=303)
 
     if not validate_thresholds(current["thresholds"]) or current["scanner"]["max_scan_items"] < 1:
         return RedirectResponse("/settings?error=1", status_code=303)
+
+    notification_error = update_notification_config(current, form)
+    if notification_error:
+        return RedirectResponse(f"/settings?error={notification_error}", status_code=303)
 
     error_code = activate_config(request.app.state, current, save_config)
     if error_code:
@@ -191,6 +242,26 @@ async def update_settings(request: Request) -> RedirectResponse:
     set_setting("language", current["app"]["language"])
     logging.info("Settings changed")
     return RedirectResponse("/settings?saved=1", status_code=303)
+
+
+@app.post("/settings/test/telegram")
+async def test_telegram_notification(request: Request) -> RedirectResponse:
+    config = request.app.state.config
+    language = normalize_language(config.get("app", {}).get("language"))
+    result = send_telegram(translate(language, "telegram_test_body"), config)
+    return RedirectResponse(f"/settings?notice=telegram_test_{result.status}", status_code=303)
+
+
+@app.post("/settings/test/email")
+async def test_email_notification(request: Request) -> RedirectResponse:
+    config = request.app.state.config
+    language = normalize_language(config.get("app", {}).get("language"))
+    result = send_email(
+        translate(language, "email_test_subject"),
+        translate(language, "email_test_body"),
+        config,
+    )
+    return RedirectResponse(f"/settings?notice=email_test_{result.status}", status_code=303)
 
 
 @app.post("/language")

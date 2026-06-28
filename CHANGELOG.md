@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added secure Telegram and Email settings UI with secret preservation and explicit clearing.
+- Added structured test-notification results for disabled, incomplete, failed, and successful delivery.
+
 - Removed server-specific paths from defaults and the public example configuration.
 - Added Windows path normalization and validation for local and UNC paths.
 - Added safe two-phase watcher switching when settings change.
