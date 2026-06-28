@@ -4,7 +4,9 @@
   <h1>{{ t("settings") }}</h1>
   {% if saved %}<div class="alert alert-success">{{ t("saved") }}</div>{% endif %}
   {% if error_code %}<div class="alert alert-danger">{{ t(error_code) }}</div>{% endif %}
-  <form class="settings-form" method="post" action="/settings">
+  {% if notice_code %}<div class="alert {{ 'alert-success' if notice_success else 'alert-danger' }}">{{ t(notice_code) }}</div>{% endif %}
+
+  <form id="settings-form" class="settings-form" method="post" action="/settings">
     <div class="form-grid">
       <label>{{ t("root_path") }}<input name="root_path" value="{{ config.watcher.root_path }}" required></label>
       <label>{{ t("language") }}
@@ -19,21 +21,81 @@
       <label>{{ t("max_name_length") }}<input type="number" name="max_name_length" min="1" value="{{ config.thresholds.max_name_length }}"></label>
       <label>{{ t("max_scan_items") }}<input type="number" name="max_scan_items" min="1" value="{{ config.scanner.max_scan_items }}"></label>
     </div>
+
     <label>{{ t("excluded_paths") }}
       <textarea name="excluded_paths" rows="5">{{ "\n".join(config.watcher.excluded_paths) }}</textarea>
       <small>{{ t("excluded_paths_help") }}</small>
     </label>
+
     <fieldset>
       <legend>{{ t("event_storage") }}</legend>
       <label class="check"><input type="checkbox" name="store_ok_events" {% if config.events.store_ok_events %}checked{% endif %}> {{ t("store_ok_events") }}</label>
       <label class="check"><input type="checkbox" name="store_modified_events" {% if config.events.store_modified_events %}checked{% endif %}> {{ t("store_modified_events") }}</label>
     </fieldset>
-    <fieldset>
-      <legend>{{ t("notifications") }}</legend>
-      <label class="check"><input type="checkbox" name="enable_telegram_notifications" {% if config.telegram.enabled %}checked{% endif %}> {{ t("enable_telegram_notifications") }}</label>
-      <label class="check"><input type="checkbox" name="enable_email_notifications" {% if config.email.enabled %}checked{% endif %}> {{ t("enable_email_notifications") }}</label>
+
+    <fieldset class="notification-fieldset">
+      <legend>{{ t("telegram_settings") }}</legend>
+      <label class="check"><input type="checkbox" name="telegram_enabled" {% if config.telegram.enabled %}checked{% endif %}> {{ t("notification_enabled") }}</label>
+      <div class="form-grid">
+        <label>{{ t("telegram_bot_token") }}
+          <input type="password" name="telegram_bot_token" autocomplete="new-password" spellcheck="false">
+          <small>{{ t("secret_blank_keeps_value") }}</small>
+        </label>
+        <label>{{ t("telegram_chat_id") }}<input name="telegram_chat_id" value="{{ config.telegram.chat_id }}" autocomplete="off"></label>
+        <label>{{ t("minimum_severity") }}
+          <select name="telegram_min_severity">
+            {% for item in notification_severity_values %}
+              <option value="{{ item }}" {% if config.telegram.min_severity == item %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+      <div class="secret-status">
+        <span class="status-label">{{ t("secret_configured") if telegram_secret_configured else t("secret_not_configured") }}</span>
+        <label class="check"><input type="checkbox" name="clear_telegram_bot_token"> {{ t("clear_saved_token") }}</label>
+      </div>
+      <div class="notification-test-row">
+        <button class="button secondary" type="submit" form="telegram-test-form" {% if not telegram_test_ready %}disabled aria-disabled="true"{% endif %}>{{ t("send_test_telegram") }}</button>
+        <small>{{ t("notification_test_ready_hint") if telegram_test_ready else t("notification_test_incomplete_hint") }}</small>
+      </div>
     </fieldset>
+
+    <fieldset class="notification-fieldset">
+      <legend>{{ t("email_settings") }}</legend>
+      <label class="check"><input type="checkbox" name="email_enabled" {% if config.email.enabled %}checked{% endif %}> {{ t("notification_enabled") }}</label>
+      <div class="form-grid">
+        <label>{{ t("smtp_host") }}<input name="email_smtp_host" value="{{ config.email.smtp_host }}" autocomplete="off"></label>
+        <label>{{ t("smtp_port") }}<input type="number" name="email_smtp_port" min="1" max="65535" value="{{ config.email.smtp_port }}"></label>
+        <label>{{ t("smtp_username") }}<input name="email_smtp_user" value="{{ config.email.smtp_user }}" autocomplete="off"></label>
+        <label>{{ t("smtp_password") }}
+          <input type="password" name="email_smtp_password" autocomplete="new-password">
+          <small>{{ t("secret_blank_keeps_value") }}</small>
+        </label>
+        <label>{{ t("from_address") }}<input type="email" name="email_from_addr" value="{{ config.email.from_addr }}"></label>
+        <label>{{ t("to_address") }}<input type="email" name="email_to_addr" value="{{ config.email.to_addr }}"></label>
+        <label>{{ t("minimum_severity") }}
+          <select name="email_min_severity">
+            {% for item in notification_severity_values %}
+              <option value="{{ item }}" {% if config.email.min_severity == item %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+      <label class="check"><input type="checkbox" name="email_use_tls" {% if config.email.use_tls %}checked{% endif %}> {{ t("use_tls") }}</label>
+      <div class="secret-status">
+        <span class="status-label">{{ t("secret_configured") if email_secret_configured else t("secret_not_configured") }}</span>
+        <label class="check"><input type="checkbox" name="clear_email_smtp_password"> {{ t("clear_saved_password") }}</label>
+      </div>
+      <div class="notification-test-row">
+        <button class="button secondary" type="submit" form="email-test-form" {% if not email_test_ready %}disabled aria-disabled="true"{% endif %}>{{ t("send_test_email") }}</button>
+        <small>{{ t("notification_test_ready_hint") if email_test_ready else t("notification_test_incomplete_hint") }}</small>
+      </div>
+    </fieldset>
+
     <button class="button" type="submit">{{ t("save") }}</button>
   </form>
+
+  <form id="telegram-test-form" method="post" action="/settings/test/telegram"></form>
+  <form id="email-test-form" method="post" action="/settings/test/email"></form>
 </section>
 {% endblock %}

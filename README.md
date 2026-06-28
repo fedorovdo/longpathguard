@@ -103,6 +103,11 @@ With `store_ok_events: false`, normal OK events are skipped. With `store_modifie
 
 The application `data` directory is always excluded internally, even when it is not listed in `excluded_paths`.
 
+## Notification Settings
+
+Telegram and Email can be configured from the Settings page; editing YAML is no longer required. Existing bot tokens and SMTP passwords are never displayed. Leaving a secret field blank preserves it, while the explicit clear checkbox removes it after validation and save.
+
+Provider test buttons use only the currently saved configuration. They report disabled, incomplete configuration, delivery failure, or successful delivery without exposing credentials.
 ## Local and UNC Paths
 
 A local folder such as `D:\FileShare` is available only when the service account has suitable NTFS permissions.
