@@ -5,11 +5,13 @@ import os
 from pathlib import Path
 from typing import Any
 
+from .paths import normalize_windows_path
 from .settings import DATA_DIR
 
 
 def normalize_path(path: str) -> str:
-    return os.path.normcase(os.path.abspath(os.path.expandvars(path)))
+    normalized = normalize_windows_path(path)
+    return os.path.normcase(os.path.abspath(normalized))
 
 
 def is_path_excluded(path: str, config: dict[str, Any]) -> bool:

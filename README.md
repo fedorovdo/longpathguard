@@ -1,49 +1,124 @@
 # LongPathGuard
 
-LongPathGuard v0.1.0 is a small Windows Server 2022 application for file servers. It helps administrators audit newly created files and folders with long names or long full paths.
+LongPathGuard is a small audit-only application for Windows Server 2022. It watches new filesystem activity and helps administrators find full paths and file or folder names that exceed configured thresholds.
 
-The core rule: v0.1.0 is audit only. The application never deletes, moves, renames, or modifies files.
+The application never deletes, moves, or renames files. Existing directory trees are inspected only when an administrator explicitly starts a manual scan.
+
+## Screenshots
+
+A screenshot location is prepared under `docs/screenshots/`. Add `dashboard.png`, `events.png`, `scan.png`, and `settings.png` there before publishing project screenshots.
 
 ## Features
 
-- Watchdog monitoring for new `created`, `renamed`, and `modified` events.
-- Full path length and file/folder name length checks.
-- Windows ACL owner lookup through pywin32 when available.
-- SQLite event database at `data/longpathguard.db`.
-- FastAPI and Jinja2 web UI without React, Docker, or PostgreSQL.
-- Russian by default, with RU/EN language switching.
-- CSV event export.
-- Manual safe scanner for existing files.
-- Windows Service installation through NSSM.
+- watchdog monitoring for `created`, `renamed`, and optionally `modified` events;
+- `ok`, `warning`, `danger`, `critical`, `long_name`, and `critical_long_name` severities;
+- SQLite event history and filtered CSV export;
+- dashboard statistics and recent events;
+- safe manual scan with an item limit;
+- Windows ACL owner lookup through pywin32;
+- Russian and English FastAPI/Jinja2 UI;
+- local execution and NSSM Windows Service installation;
+- Telegram and Email notifications when configured.
 
-## Install Python 3.12
+## Limitations
 
-1. Download Python 3.12: https://www.python.org/downloads/windows/
-2. Enable `Add python.exe to PATH` during installation.
-3. Verify:
+- Audit mode only: no quarantine or automatic remediation;
+- no built-in web authentication;
+- not a filesystem driver;
+- manual scans run synchronously and are limited by `max_scan_items`;
+- NSSM is not bundled or downloaded automatically.
 
-```powershell
-python --version
-```
+## Requirements
 
-## Create venv and Run Dev
+- Windows Server 2022 or a compatible Windows version;
+- 64-bit Python 3.12 available in `PATH`;
+- read permission for the watched folder;
+- administrator rights only when installing the Windows Service;
+- NSSM for service mode.
 
-Open PowerShell in the project root:
+## Quick Start
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\run_dev.ps1
+.\scripts\setup.ps1
+.\scripts\run.ps1
 ```
 
-The script creates `.venv`, installs dependencies, and starts uvicorn on the host/port from `config/config.yaml`.
+`setup.ps1` validates Python 3.12, creates `.venv`, installs dependencies, creates `config` and `data`, and copies `config/config.example.yaml` to `config/config.yaml` only when the local config is missing. An existing config is never overwritten.
 
-By default, the web UI is available only on the server:
+`run.ps1` uses the existing `.venv`, reads host/port from config, and does not reinstall dependencies on every normal start. `run_dev.ps1` remains as a compatibility wrapper around setup and run.
+
+The UI listens locally by default:
 
 ```text
 http://127.0.0.1:8787
 ```
 
-To access the UI from the local network, explicitly change `app.host` to `0.0.0.0` and open port `8787` in Windows Firewall:
+## First Run
+
+The public configuration intentionally has no watched folder:
+
+```yaml
+watcher:
+  root_path: ""
+  excluded_paths: []
+```
+
+This is a normal state. The application starts, but the watcher and manual scan remain inactive until a folder is selected in `Settings`.
+
+LongPathGuard accepts absolute local paths and UNC paths. It normalizes surrounding quotes, environment variables, and trailing backslashes. Relative paths are rejected. It never creates the user-entered directory automatically.
+
+Examples:
+
+```text
+D:\FileShare
+"D:\Folder With Spaces\"
+\\fileserver\share
+%LPG_SHARE_ROOT%\Archive
+```
+
+Before saving, the application checks that the path exists, is a directory, and can be opened for reading. A candidate watcher starts before the previous watcher is stopped. If validation, watcher startup, or config saving fails, the previous config and watcher keep running.
+
+## Main Configuration
+
+Local config: `config/config.yaml`. Public example: `config/config.example.yaml`.
+
+```yaml
+app:
+  language: ru
+  audit_mode: true
+  host: 127.0.0.1
+  port: 8787
+events:
+  store_ok_events: false
+  store_modified_events: false
+watcher:
+  root_path: ""
+  excluded_paths: []
+scanner:
+  max_scan_items: 10000
+```
+
+With `store_ok_events: false`, normal OK events are skipped. With `store_modified_events: false`, normal modified events are skipped while path/name violations are still stored.
+
+The application `data` directory is always excluded internally, even when it is not listed in `excluded_paths`.
+
+## Local and UNC Paths
+
+A local folder such as `D:\FileShare` is available only when the service account has suitable NTFS permissions.
+
+A UNC path such as `\\server\share` works only when the `LongPathGuard` Windows Service account has access to both the SMB share and filesystem. `LocalSystem` is generally not appropriate for remote network shares.
+
+Configure the service account using either:
+
+1. `nssm edit LongPathGuard`, then the `Log on` tab;
+2. `services.msc`, open `LongPathGuard` properties, then the `Log On` tab.
+
+Restart the service after changing the account. Never store the service username or password in `config.yaml` or Git.
+
+## Network Access
+
+To access the UI from other computers, change:
 
 ```yaml
 app:
@@ -51,58 +126,24 @@ app:
   port: 8787
 ```
 
-## Configuration
-
-GitHub includes `config/config.example.yaml`. Local `config/config.yaml` is ignored by git and can contain server-specific settings.
-
-The default watched folder is:
-
-```yaml
-watcher:
-  root_path: D:\fs
-```
-
-If the folder does not exist, the app keeps running: the dashboard shows an error and the watcher does not start until the path is fixed.
-
-## Event Noise
-
-By default, LongPathGuard stores only problems and errors:
-
-```yaml
-events:
-  store_ok_events: false
-  store_modified_events: false
-```
-
-- `store_ok_events: false` skips events with `severity = ok`.
-- `store_modified_events: false` skips `modified` events unless they are warning/danger/critical/long_name.
-
-This keeps the database focused on violations instead of normal file activity.
+Do this only on a trusted network with a correctly scoped Windows Firewall rule. The current release has no advanced authentication, so do not expose the port directly to the internet.
 
 ## Manual Scan
 
-The scanner does not run automatically. Open `Scan` and press `Start scan`.
+The scan starts only from the `Scan` page and always uses the current runtime `root_path`. Exclusions and `max_scan_items` apply on every run. An access failure in one subdirectory is recorded and should not abort the remaining traversal.
 
-The scanner only reads the directory tree and writes detected problems as events with `event_type = scan_detected`. It does not change files. The limit is controlled by:
+When root_path is empty or unavailable, the button is disabled and no false SQLite event is created.
 
-```yaml
-scanner:
-  max_scan_items: 10000
-```
+## CSV Export and Language
 
-## Windows Service Installation
+The `Events` page supports severity, event type, date range, path search, and result limit filters. `Export CSV` uses the active filters.
 
-LongPathGuard uses NSSM.
+RU/EN can be switched from the top navigation. The selected language is stored in the local config and SQLite settings table.
 
-1. Download NSSM: https://nssm.cc/download
-2. Put `nssm.exe` here:
+## Install as a Windows Service with NSSM
 
-```text
-scripts\tools\nssm.exe
-```
-
-Or add `nssm.exe` to `PATH`.
-
+1. Download NSSM manually from its official site.
+2. Put `nssm.exe` at `scripts\tools\nssm.exe`, or add NSSM to `PATH`.
 3. Run PowerShell as Administrator:
 
 ```powershell
@@ -111,12 +152,13 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\start_service.ps1
 ```
 
-The script installs dependencies, creates the `LongPathGuard` service, enables auto-start, and configures NSSM restart on failure. The service starts uvicorn on the host/port from `config/config.yaml`; by default this is `127.0.0.1:8787`.
+The installer calls `setup.ps1`, refuses to create a duplicate service, ensures `data` exists, reads host/port from config, enables automatic startup, and configures restart on failure.
 
-Stop:
+Stop and start:
 
 ```powershell
 .\scripts\stop_service.ps1
+.\scripts\start_service.ps1
 ```
 
 Uninstall:
@@ -125,19 +167,73 @@ Uninstall:
 .\scripts\uninstall_service.ps1
 ```
 
-## Logs and Data
+The scripts never download NSSM and never store service credentials.
 
-- Database: `data/longpathguard.db`
-- Application log: `data/longpathguard.log`
-- NSSM service logs: `data/service.out.log`, `data/service.err.log`
+## Files, Data, and Logs
 
-## Audit Only
+- configuration: `config/config.yaml`;
+- public example: `config/config.example.yaml`;
+- SQLite database: `data/longpathguard.db`;
+- application log: `data/longpathguard.log`;
+- service stdout/stderr: `data/service.out.log`, `data/service.err.log`.
 
-LongPathGuard v0.1.0:
+The local config, database, and logs are excluded from Git.
 
-- does not quarantine files;
-- does not delete files;
-- does not rename files;
-- does not move files;
-- does not install a filesystem driver;
-- does not use Docker, PostgreSQL, or React.
+## Backup
+
+For a consistent backup, stop the service and copy `config/config.yaml` plus `data` to a protected destination:
+
+```powershell
+.\scripts\stop_service.ps1
+Copy-Item .\config\config.yaml E:\Backups\LongPathGuard\config.yaml
+Copy-Item .\data E:\Backups\LongPathGuard\data -Recurse
+.\scripts\start_service.ps1
+```
+
+The destination is only an example. Do not commit backups to Git.
+
+## Updating
+
+1. Stop the service.
+2. Back up config and data.
+3. Update application files without replacing local `config/config.yaml` or `data`.
+4. Run `scripts/setup.ps1` to refresh dependencies.
+5. Run tests and start the service.
+
+```powershell
+.\scripts\stop_service.ps1
+.\scripts\setup.ps1
+.\.venv\Scripts\python.exe -m pytest
+.\scripts\start_service.ps1
+```
+
+## Security
+
+- keep the default `127.0.0.1` binding unless remote access is required;
+- restrict port 8787 with Windows Firewall;
+- run the service with the minimum read permissions it needs;
+- never commit service passwords, SMTP credentials, or Telegram credentials;
+- protect SQLite/config backups;
+- remember that Audit mode reports problems but does not block or repair them.
+
+## Troubleshooting
+
+- `Path is required`: select an absolute folder in `Settings`.
+- `Absolute path required`: use `D:\Share` or `\\server\share`, not a relative path.
+- `Folder does not exist`: check spelling, drive availability, or SMB connectivity.
+- `Object is not a folder`: select a directory instead of a file.
+- `Access denied`: check NTFS and SMB permissions for the current process/service account.
+- `Watcher failed to start`: inspect `data/longpathguard.log` and service stderr.
+- `nssm.exe not found`: place it at `scripts\tools\nssm.exe`; it is intentionally excluded from Git.
+- Remote UI unavailable: check host, firewall scope, and trusted-network connectivity.
+- Port already in use: change `app.port` or stop the process using 8787.
+
+## Developer Verification
+
+```powershell
+.\scripts\setup.ps1
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m compileall app
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -c "import app.main; print('import ok')"
+```

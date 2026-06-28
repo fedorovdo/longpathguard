@@ -26,9 +26,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "store_modified_events": False,
     },
     "watcher": {
-        "root_path": r"D:\fs",
+        "root_path": "",
         "excluded_paths": [
-            r"D:\_LongPathQuarantine",
             str(DATA_DIR),
         ],
         "modified_debounce_seconds": 2,
@@ -97,8 +96,10 @@ def load_config() -> dict[str, Any]:
 
 def save_config(config: dict[str, Any]) -> None:
     ensure_project_dirs()
-    with CONFIG_PATH.open("w", encoding="utf-8") as file:
+    temporary_path = CONFIG_PATH.with_suffix(CONFIG_PATH.suffix + ".tmp")
+    with temporary_path.open("w", encoding="utf-8") as file:
         yaml.safe_dump(config, file, allow_unicode=True, sort_keys=False)
+    temporary_path.replace(CONFIG_PATH)
 
 
 def validate_thresholds(thresholds: dict[str, Any]) -> bool:

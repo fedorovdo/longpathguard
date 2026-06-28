@@ -5,11 +5,13 @@
     <h1>{{ t("dashboard") }}</h1>
     <span class="badge badge-audit">{{ t("audit_mode") }}</span>
   </div>
-  {% if not root_path_exists %}
-    <div class="alert alert-warning">{{ t("root_missing") }}</div>
+  {% if root_path_error_code %}
+    <div class="alert alert-warning">
+      {{ t("watched_folder_not_configured") if root_path_error_code == "path_required" else t(root_path_error_code) }}
+    </div>
   {% endif %}
-  {% if watcher_error %}
-    <div class="alert alert-danger">{{ watcher_error }}</div>
+  {% if watcher_error_code == "watcher_start_failed" %}
+    <div class="alert alert-danger">{{ t("watcher_start_failed") }}</div>
   {% endif %}
   <div class="status-grid">
     <div class="metric">
@@ -18,7 +20,7 @@
     </div>
     <div class="metric wide">
       <span>{{ t("root_path") }}</span>
-      <strong>{{ config.watcher.root_path }}</strong>
+      <strong>{{ config.watcher.root_path or t("not_configured_value") }}</strong>
     </div>
     <div class="metric">
       <span>{{ t("mode") }}</span>

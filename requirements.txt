@@ -4,4 +4,4 @@ Jinja2==3.1.5
 watchdog==6.0.0
 PyYAML==6.0.2
 python-multipart==0.0.20
-pywin32==308
+pywin32==312

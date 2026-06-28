@@ -3,7 +3,7 @@
 <section class="section">
   <h1>{{ t("settings") }}</h1>
   {% if saved %}<div class="alert alert-success">{{ t("saved") }}</div>{% endif %}
-  {% if error %}<div class="alert alert-danger">{{ t("invalid_settings") }}</div>{% endif %}
+  {% if error_code %}<div class="alert alert-danger">{{ t(error_code) }}</div>{% endif %}
   <form class="settings-form" method="post" action="/settings">
     <div class="form-grid">
       <label>{{ t("root_path") }}<input name="root_path" value="{{ config.watcher.root_path }}" required></label>

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .database import insert_event
+from .paths import validate_watch_path
 from .security import build_event, evaluate_severity, is_path_excluded
 
 
@@ -15,6 +16,7 @@ class ScanResult:
     detected: int = 0
     errors: int = 0
     stopped_by_limit: bool = False
+    error_code: str | None = None
 
 
 def _record_error(path: str, config: dict[str, Any], error: str) -> None:
@@ -32,14 +34,22 @@ def scan_existing(config: dict[str, Any]) -> ScanResult:
     root_path = config.get("watcher", {}).get("root_path", "")
     max_items = int(config.get("scanner", {}).get("max_scan_items", 10000))
 
-    if not os.path.isdir(root_path):
+    validation = validate_watch_path(root_path)
+    if not validation.is_valid:
         result.errors += 1
-        _record_error(root_path or ".", config, "Root path does not exist")
+        result.error_code = validation.error_code
+        logging.warning(
+            "Manual scan rejected for %r: %s (%s)",
+            root_path,
+            validation.error_code,
+            validation.detail or "no details",
+        )
         return result
+    root_path = validation.path
 
     def onerror(error: OSError) -> None:
         result.errors += 1
-        logging.exception("Scan access error: %s", error)
+        logging.warning("Scan access error: %s", error)
         _record_error(getattr(error, "filename", root_path) or root_path, config, str(error))
 
     for dirpath, dirnames, filenames in os.walk(root_path, onerror=onerror):

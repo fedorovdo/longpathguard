@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Removed server-specific paths from defaults and the public example configuration.
+- Added Windows path normalization and validation for local and UNC paths.
+- Added safe two-phase watcher switching when settings change.
+- Added first-run handling for an unconfigured watched folder.
+- Added setup and normal-run PowerShell scripts.
+- Hardened NSSM installation against duplicate services.
+- Added pytest coverage and a Windows GitHub Actions workflow.
+- Expanded Russian and English operations documentation.
+
 ## 0.1.0 - 2026-05-13
 
 - Added FastAPI and Jinja2 web UI with RU/EN localization.

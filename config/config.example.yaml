@@ -7,10 +7,8 @@ events:
   store_ok_events: false
   store_modified_events: false
 watcher:
-  root_path: D:\fs
-  excluded_paths:
-    - D:\_LongPathQuarantine
-    - data
+  root_path: ""
+  excluded_paths: []
   modified_debounce_seconds: 2
 thresholds:
   max_full_path_warning: 220
