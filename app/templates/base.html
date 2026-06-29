@@ -3,25 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ t("app_name") }}</title>
+  <title>{{ meta.APP_NAME }}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', path='brand/simply-admin-mark-dark.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">{{ t("app_name") }}</div>
-    <nav class="nav">
+    <a href="/" class="brand-link" aria-label="{{ t('brand_home_label') }}">
+      <img src="{{ url_for('static', path='brand/simply-admin-mark-light.png') }}" alt="{{ t('simply_admin_logo_alt') }}" class="brand-mark">
+      <span class="app-identity">{{ meta.APP_NAME }}</span>
+    </a>
+    <nav class="nav" aria-label="{{ t('primary_navigation') }}">
       <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">{{ t("dashboard") }}</a>
       <a href="/events" class="{% if request.url.path.startswith('/events') %}active{% endif %}">{{ t("events") }}</a>
       <a href="/scan" class="{% if request.url.path == '/scan' %}active{% endif %}">{{ t("scan") }}</a>
       <a href="/settings" class="{% if request.url.path == '/settings' %}active{% endif %}">{{ t("settings") }}</a>
+      <a href="/about" class="{% if request.url.path == '/about' %}active{% endif %}">{{ t("about") }}</a>
     </nav>
-    <form class="language-switch" method="post" action="/language">
-      <button type="submit" name="language" value="ru" class="{% if language == 'ru' %}active{% endif %}">RU</button>
-      <button type="submit" name="language" value="en" class="{% if language == 'en' %}active{% endif %}">EN</button>
+    <form class="language-switch" method="post" action="/language" aria-label="{{ t('language') }}">
+      <button type="submit" name="language" value="ru" class="{% if language == 'ru' %}active{% endif %}" aria-label="Русский">RU</button>
+      <button type="submit" name="language" value="en" class="{% if language == 'en' %}active{% endif %}" aria-label="English">EN</button>
     </form>
   </header>
   <main class="page">
     {% block content %}{% endblock %}
   </main>
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>{{ meta.BRAND_NAME }}</span>
+      <a href="{{ meta.WEBSITE_URL }}" target="_blank" rel="noopener noreferrer">{{ t("website") }}</a>
+      <a href="{{ meta.CONTACT_EMAIL_URL }}">{{ meta.CONTACT_EMAIL_ADDRESS }}</a>
+      <span>{{ t("version") }} {{ meta.APP_VERSION }}</span>
+    </div>
+  </footer>
 </body>
 </html>

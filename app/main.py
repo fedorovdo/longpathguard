@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .database import export_events_csv, fetch_events, init_db, set_setting, today_stats
+from . import metadata
 from .i18n import normalize_language, translate
 from .notification_settings import NOTIFICATION_SEVERITIES, update_notification_config
 from .notifier import NOTIFICATION_STATUSES, send_email, send_telegram
@@ -64,6 +65,7 @@ def _template_context(request: Request, extra: dict[str, Any] | None = None) -> 
     context = {
         "request": request,
         "config": config,
+        "meta": metadata,
         "language": language,
         "t": lambda key: translate(language, key),
         "watcher_running": bool(watcher and watcher.is_running),
@@ -105,8 +107,13 @@ async def lifespan(app: FastAPI):
         logging.info("LongPathGuard stopped")
 
 
-app = FastAPI(title="LongPathGuard", lifespan=lifespan)
+app = FastAPI(title=metadata.APP_NAME, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "app" / "static")), name="static")
+
+
+@app.get("/about", response_class=HTMLResponse)
+async def about_page(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(request, "about.html", _template_context(request))
 
 
 @app.get("/", response_class=HTMLResponse)

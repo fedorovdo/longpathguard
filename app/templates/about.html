@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="about-page">
+  <div class="about-brand">
+    <img src="{{ url_for('static', path='brand/simply-admin-logo-dark.png') }}" alt="{{ t('simply_admin_logo_alt') }}" class="about-logo">
+    <div>
+      <h1>{{ meta.APP_NAME }}</h1>
+      <p>{{ t("about_description") }}</p>
+    </div>
+  </div>
+
+  <div class="about-grid">
+    <section class="about-card" aria-labelledby="about-product-heading">
+      <h2 id="about-product-heading">{{ t("about_product") }}</h2>
+      <dl class="about-details">
+        <div><dt>{{ t("version") }}</dt><dd>{{ meta.APP_VERSION }}</dd></div>
+        <div><dt>{{ t("status") }}</dt><dd>{{ t("stable") }}</dd></div>
+        <div><dt>{{ t("developer") }}</dt><dd>{{ meta.DEVELOPER_NAME }}</dd></div>
+        <div><dt>{{ t("brand") }}</dt><dd>{{ meta.BRAND_NAME }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="about-card" aria-labelledby="about-links-heading">
+      <h2 id="about-links-heading">{{ t("links_and_contact") }}</h2>
+      <ul class="about-links">
+        <li><a href="{{ meta.WEBSITE_URL }}" target="_blank" rel="noopener noreferrer">{{ t("website") }}</a></li>
+        <li><a href="{{ meta.GITHUB_URL }}" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="{{ meta.CONTACT_EMAIL_URL }}">{{ meta.CONTACT_EMAIL_ADDRESS }}</a></li>
+      </ul>
+    </section>
+
+    <section class="about-card about-card-wide" aria-labelledby="about-technical-heading">
+      <h2 id="about-technical-heading">{{ t("technical_summary") }}</h2>
+      <ul class="technical-list">
+        <li>{{ t("tech_windows_server") }}</li>
+        <li>{{ t("tech_fastapi_jinja") }}</li>
+        <li>{{ t("tech_sqlite") }}</li>
+        <li>{{ t("tech_watchdog") }}</li>
+        <li>{{ t("tech_nssm") }}</li>
+        <li>{{ t("tech_bilingual") }}</li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="alert alert-warning about-audit-notice">{{ t("about_audit_notice") }}</div>
+</section>
+{% endblock %}

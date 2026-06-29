@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from app import metadata
 from app.notification_settings import NOTIFICATION_SEVERITIES
 from app.settings import DEFAULT_CONFIG
 
@@ -26,6 +27,7 @@ def test_settings_html_never_renders_saved_secrets() -> None:
 
     html = template.render(
         request=request,
+        meta=metadata,
         language="en",
         t=lambda key: key,
         config=config,
