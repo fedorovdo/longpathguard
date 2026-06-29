@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.1 - 2026-06-29
+
 - Added unified Simply Admin branding, centralized application metadata, a localized About page, responsive brand assets, footer, and favicon.
 
 ## 0.2.0 - 2026-06-28
