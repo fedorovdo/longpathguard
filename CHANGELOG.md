@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added unified Simply Admin branding, centralized application metadata, a localized About page, responsive brand assets, footer, and favicon.
+
 ## 0.2.0 - 2026-06-28
 
 - Added secure Telegram and Email settings UI with secret preservation and explicit clearing.

@@ -4,6 +4,9 @@ LongPathGuard is a small audit-only application for Windows Server 2022. It watc
 
 The application never deletes, moves, or renames files. Existing directory trees are inspected only when an administrator explicitly starts a manual scan.
 
+## Branding and About
+
+LongPathGuard is developed by [Simply Admin](https://simplyadmin.org). The localized About page at /about shows the application version, release status, developer, technical summary, project links, and contact details. Source code and releases are available on [GitHub](https://github.com/fedorovdo/longpathguard); contact: [itsimplydev@gmail.com](mailto:itsimplydev@gmail.com).
 ## Screenshots
 
 A screenshot location is prepared under `docs/screenshots/`. Add `dashboard.png`, `events.png`, `scan.png`, and `settings.png` there before publishing project screenshots.

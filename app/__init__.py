@@ -1,1 +1,1 @@
-__version__ = "0.1.0"
+from .metadata import APP_VERSION as __version__
